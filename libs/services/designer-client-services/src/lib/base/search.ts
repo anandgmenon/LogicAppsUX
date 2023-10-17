@@ -108,7 +108,9 @@ export abstract class BaseSearchService implements ISearchService {
     } = this.options;
     if (this._isDev) return Promise.resolve(azureOperationsResponse);
 
-    const uri = `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/apiOperations`;
+    const newLocation = location == 'eastasia(stage)' ? 'eastasia' : location;
+
+    const uri = `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${newLocation}/apiOperations`;
     const queryParameters: QueryParameters = {
       $filter: "type eq 'Microsoft.Web/locations/managedApis/apiOperations' and properties/integrationServiceEnvironmentResourceId eq null",
     };
@@ -128,8 +130,8 @@ export abstract class BaseSearchService implements ISearchService {
       if (page === 0) return Promise.resolve(azureOperationsResponse);
       else return Promise.resolve([]);
     }
-
-    const uri = `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/apiOperations`;
+    const newLocation = location == 'eastasia(stage)' ? 'eastasia' : location;
+    const uri = `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${newLocation}/apiOperations`;
     const queryParameters: QueryParameters = {
       $filter: "type eq 'Microsoft.Web/locations/managedApis/apiOperations' and properties/integrationServiceEnvironmentResourceId eq null",
       'api-version': apiVersion,
@@ -152,7 +154,9 @@ export abstract class BaseSearchService implements ISearchService {
     const {
       apiHubServiceDetails: { location, subscriptionId },
     } = this.options;
-    const uri = `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis`;
+
+    const newLocation = location == 'eastasia(stage)' ? 'eastasia' : location;
+    const uri = `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${newLocation}/managedApis`;
     // const responseArray = await this.batchAzureResourceRequests(uri);
     const responseArray = await this.getAzureResourceRecursive(uri, undefined);
     return this.moveGeneralInformation(responseArray);
@@ -171,7 +175,8 @@ export abstract class BaseSearchService implements ISearchService {
     const {
       apiHubServiceDetails: { location, subscriptionId, apiVersion, openApiVersion },
     } = this.options;
-    const uri = `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${location}/managedApis`;
+    const newLocation = location == 'eastasia(stage)' ? 'eastasia' : location;
+    const uri = `/subscriptions/${subscriptionId}/providers/Microsoft.Web/locations/${newLocation}/managedApis`;
     // const responseArray = await this.pagedBatchAzureResourceRequests(page, uri, undefined, 5);
     const { value } = await this.getAzureResourceByPage(uri, { 'api-version': openApiVersion ?? apiVersion }, page);
 
