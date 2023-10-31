@@ -38,11 +38,16 @@ export class ManagedEnvironmentCreateStep extends AzureWizardExecuteStep<IManage
       nonNullProp(logAnalyticsWorkspace, 'name')
     );
 
+    let location = (await LocationListStep.getLocation(context)).name;
+    if (location == 'East Asia (Stage)') {
+      location = 'East Asia';
+    }
+
     context.managedEnvironment = await client.managedEnvironments.beginCreateOrUpdateAndWait(
       rgName,
       nonNullProp(context, 'newManagedEnvironmentName'),
       {
-        location: (await LocationListStep.getLocation(context)).name,
+        location,
         appLogsConfiguration: {
           destination: 'log-analytics',
           logAnalyticsConfiguration: {

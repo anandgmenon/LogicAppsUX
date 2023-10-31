@@ -38,6 +38,14 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
     context.telemetry.properties.newSiteRuntime = context.newSiteRuntime;
     context.telemetry.properties.planSkuTier = context.plan?.sku?.tier;
 
+    if (context.containerApp) {
+      // (NOTE: anandgmenon) The storageListStep overwrites the original location to the location storage account is in. This creates a mismatch in staging regions.
+      const locationName = context?.telemetry?.properties?.location ?? undefined;
+      await LocationListStep.setLocation(context, locationName);
+
+      context.version = FuncVersion.v4;
+    }
+
     const message: string = localize('creatingNewApp', 'Creating new logic app "{0}"...', context.newSiteName);
     ext.outputChannel.appendLog(message);
     progress.report({ message });
@@ -63,7 +71,7 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
       clientAffinityEnabled: false,
       siteConfig: await this.getNewSiteConfig(context),
       reserved: context.newSiteOS === WebsiteOS.linux,
-      identity: context.customLocation ? undefined : { type: 'SystemAssigned' },
+      identity: context.customLocation || context._location?.displayName.endsWith('(Stage)') ? undefined : { type: 'SystemAssigned' },
       managedEnvironmentId: context.useContainerApps ? context.containerApp?.id : undefined,
     };
 

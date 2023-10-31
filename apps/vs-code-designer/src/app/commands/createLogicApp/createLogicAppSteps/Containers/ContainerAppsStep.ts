@@ -26,6 +26,7 @@ export class ContainerAppsStep extends AzureWizardPromptStep<ILogicAppWizardCont
       wizardContext.containerApp = containerEnvironment;
     }
     wizardContext.telemetry.properties.containerApp = wizardContext.containerApp?.name;
+    wizardContext.telemetry.properties.location = locationName;
   }
 
   public shouldPrompt(wizardContext: ILogicAppWizardContext): boolean {
@@ -37,6 +38,11 @@ export class ContainerAppsStep extends AzureWizardPromptStep<ILogicAppWizardCont
     let picks = sitesList.map((site) => {
       return { label: site.name, data: site };
     });
+
+    // (NOTE:anandgmenon) container apps are not supported in east asia stage, using environments in east asia instead
+    if (locationName == 'East Asia (Stage)') {
+      locationName = 'East Asia';
+    }
     picks = locationName ? picks.filter((pick) => pick.data.location === locationName) : picks;
     picks.sort((a, b) => a.label.localeCompare(b.label));
     picks.unshift({ label: localize('newContainerApps', '$(plus) Create new Container Apps environment'), data: undefined });

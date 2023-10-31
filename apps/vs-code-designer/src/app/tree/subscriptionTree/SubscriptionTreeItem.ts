@@ -39,6 +39,7 @@ import {
   ParsedSite,
   SiteNameStep,
   WebsiteOS,
+  getWebLocations,
 } from '@microsoft/vscode-azext-azureappservice';
 import type { IAppServiceWizardContext, SiteClient } from '@microsoft/vscode-azext-azureappservice';
 import type { INewStorageAccountDefaults } from '@microsoft/vscode-azext-azureutils';
@@ -53,6 +54,7 @@ import {
   uiUtils,
   VerifyProvidersStep,
   storageAccountNamingRules,
+  LocationListStep,
 } from '@microsoft/vscode-azext-azureutils';
 import type { AzExtTreeItem, AzureWizardExecuteStep, AzureWizardPromptStep, IActionContext } from '@microsoft/vscode-azext-utils';
 import { nonNullProp, parseError, AzureWizard } from '@microsoft/vscode-azext-utils';
@@ -126,6 +128,10 @@ export class SubscriptionTreeItem extends SubscriptionTreeItemBase {
     }
 
     await setRegionsTask(wizardContext);
+
+    // (NOTE:anandgmenon) Currently we only list georegions supported by microsoft.resources RP, overriding this to also include stagin regions
+    const locations = await getWebLocations(wizardContext);
+    LocationListStep.setLocationSubset(wizardContext, Promise.resolve(locations), 'microsoft.resources');
 
     const promptSteps: AzureWizardPromptStep<IAppServiceWizardContext>[] = [];
     const executeSteps: AzureWizardExecuteStep<IAppServiceWizardContext>[] = [];

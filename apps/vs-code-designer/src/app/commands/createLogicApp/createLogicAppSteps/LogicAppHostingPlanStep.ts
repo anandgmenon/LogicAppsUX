@@ -5,13 +5,14 @@
 import { localize } from '../../../../localize';
 import { setSiteOS } from '../../../tree/subscriptionTree/SubscriptionTreeItem';
 import { ContainerAppsStep } from './Containers/ContainerAppsStep';
-import { AppServicePlanListStep } from '@microsoft/vscode-azext-azureappservice';
+import { AppServicePlanListStep, getWebLocations } from '@microsoft/vscode-azext-azureappservice';
 import {
   StorageAccountListStep,
   StorageAccountKind,
   StorageAccountPerformance,
   StorageAccountReplication,
   type INewStorageAccountDefaults,
+  LocationListStep,
 } from '@microsoft/vscode-azext-azureutils';
 import { AzureWizardPromptStep, type IAzureQuickPickItem, type IWizardOptions } from '@microsoft/vscode-azext-utils';
 import type { ILogicAppWizardContext } from '@microsoft/vscode-extension';
@@ -49,6 +50,12 @@ export class LogicAppHostingPlanStep extends AzureWizardPromptStep<ILogicAppWiza
         performance: StorageAccountPerformance.Standard,
         replication: StorageAccountReplication.LRS,
       };
+
+      // (NOTE:anandgmenon): Storage is not supported in staging regions, so we remove them so they fallback to prod regions
+      const locations = await getWebLocations(wizardContext);
+      const storageLocations = locations.filter((l) => !l.endsWith('(Stage)'));
+      LocationListStep.setLocationSubset(wizardContext, Promise.resolve(storageLocations), 'Microsoft.Storage');
+
       return {
         promptSteps: [
           new ContainerAppsStep(),
