@@ -5,7 +5,7 @@
 import { localize } from '../../../../localize';
 import { setSiteOS } from '../../../tree/subscriptionTree/SubscriptionTreeItem';
 import { ContainerAppsStep } from './Containers/ContainerAppsStep';
-import { AppServicePlanListStep, getWebLocations } from '@microsoft/vscode-azext-azureappservice';
+import { AppServicePlanListStep } from '@microsoft/vscode-azext-azureappservice';
 import {
   StorageAccountListStep,
   StorageAccountKind,
@@ -33,6 +33,11 @@ export class LogicAppHostingPlanStep extends AzureWizardPromptStep<ILogicAppWiza
     wizardContext.telemetry.properties.useConsumptionPlan = wizardContext.useConsumptionPlan ? 'true' : 'false';
     wizardContext.telemetry.properties.planSkuFamilyFilter = wizardContext.planSkuFamilyFilter.source;
     wizardContext.telemetry.properties.useContainerApps = wizardContext.useContainerApps ? 'true' : 'false';
+    wizardContext.telemetry.properties.location = wizardContext?._location?.displayName ?? undefined;
+
+    if (wizardContext._location?.displayName == 'East Asia (Stage)') {
+      LocationListStep.setLocation(wizardContext, 'East Asia');
+    }
 
     setSiteOS(wizardContext);
   }
@@ -50,11 +55,6 @@ export class LogicAppHostingPlanStep extends AzureWizardPromptStep<ILogicAppWiza
         performance: StorageAccountPerformance.Standard,
         replication: StorageAccountReplication.LRS,
       };
-
-      // (NOTE:anandgmenon): Storage is not supported in staging regions, so we remove them so they fallback to prod regions
-      const locations = await getWebLocations(wizardContext);
-      const storageLocations = locations.filter((l) => !l.endsWith('(Stage)'));
-      LocationListStep.setLocationSubset(wizardContext, Promise.resolve(storageLocations), 'Microsoft.Storage');
 
       return {
         promptSteps: [

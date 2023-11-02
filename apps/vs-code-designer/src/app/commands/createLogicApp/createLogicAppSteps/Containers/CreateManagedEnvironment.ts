@@ -13,7 +13,7 @@ import type { Workspace } from '@azure/arm-operationalinsights';
 import {
   type IResourceGroupWizardContext,
   LocationListStep,
-  ResourceGroupCreateStep,
+  ResourceGroupListStep,
   VerifyProvidersStep,
 } from '@microsoft/vscode-azext-azureutils';
 import {
@@ -53,9 +53,9 @@ export async function createManagedEnvironment(
     const executeSteps: AzureWizardExecuteStep<IManagedEnvironmentContext>[] = [];
 
     promptSteps.push(new ManagedEnvironmentNameStep());
+    promptSteps.push(new ResourceGroupListStep());
     executeSteps.push(
       new VerifyProvidersStep([appProvider, operationalInsightsProvider]),
-      new ResourceGroupCreateStep(),
       new LogAnalyticsCreateStep(),
       new ManagedEnvironmentCreateStep()
     );
@@ -73,6 +73,7 @@ export async function createManagedEnvironment(
     const newManagedEnvName = nonNullProp(wizardContext, 'newManagedEnvironmentName');
     wizardContext.newResourceGroupName = newManagedEnvName;
     wizardContext.activityTitle = localize('createNamedManagedEnv', 'Create Container Apps environment "{0}"', newManagedEnvName);
+
     await wizard.execute();
 
     return wizardContext.managedEnvironment;
