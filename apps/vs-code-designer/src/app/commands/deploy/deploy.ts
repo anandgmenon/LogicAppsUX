@@ -40,7 +40,13 @@ import { updateAppSettingsWithIdentityDetails } from './updateAppSettings';
 import { verifyAppSettings } from './verifyAppSettings';
 import type { SiteConfigResource, StringDictionary, Site } from '@azure/arm-appservice';
 import { ResolutionService } from '@microsoft/parsers-logic-apps';
-import { deploy as innerDeploy, getDeployFsPath, runPreDeployTask, getDeployNode } from '@microsoft/vscode-azext-azureappservice';
+import {
+  deploy as innerDeploy,
+  getDeployFsPath,
+  runPreDeployTask,
+  getDeployNode,
+  createWebSiteClient,
+} from '@microsoft/vscode-azext-azureappservice';
 import type { IDeployContext } from '@microsoft/vscode-azext-azureappservice';
 import { ScmType } from '@microsoft/vscode-azext-azureappservice/out/src/ScmType';
 import type { AzExtParentTreeItem, IActionContext, IAzureQuickPickItem, ISubscriptionContext } from '@microsoft/vscode-azext-utils';
@@ -167,7 +173,7 @@ async function deploy(
     }
 
     deployProjectPathForWorkflowApp = isWorkflowApp
-      ? await getProjectPathToDeploy(node, workspaceFolder, settingsToExclude, deployFsPath, identityWizardContext)
+      ? await getProjectPathToDeploy(node, workspaceFolder, settingsToExclude, deployFsPath, identityWizardContext, isDeployingToContainers)
       : undefined;
 
     try {
@@ -187,9 +193,7 @@ async function deploy(
     }
   });
 
-  if (!isDeployingToContainers) {
-    await node.loadAllChildren(context);
-  }
+  await node.loadAllChildren(context);
   await notifyDeployComplete(node, context.workspaceFolder, settingsToExclude);
 }
 
@@ -202,7 +206,9 @@ async function getDeployLogicAppNode(context: IActionContext): Promise<SlotTreeI
   const placeHolder: string = localize('selectLogicApp', 'Select Logic App (Standard) in Azure');
   const sub = await ext.rgApi.appResourceTree.showTreeItemPicker<AzExtParentTreeItem>(SubscriptionTreeItem.contextValue, context);
 
-  const [site, isAdvance] = (await context.ui.showQuickPick(getLogicAppsPicks(context, sub.subscription), { placeHolder })).data;
+  const logicAppPick = (await context.ui.showQuickPick(getLogicAppsPicks(context, sub.subscription), { placeHolder })).data;
+  let site = logicAppPick[0];
+  const isAdvance = logicAppPick[1];
   if (!site) {
     if (isAdvance) {
       return await createLogicAppAdvanced(context, sub);
@@ -210,6 +216,11 @@ async function getDeployLogicAppNode(context: IActionContext): Promise<SlotTreeI
       return await createLogicApp(context, sub);
     }
   } else {
+    if (site.kind?.indexOf(containersKind) != -1) {
+      const client = await createWebSiteClient({ ...context, ...sub.subscription });
+      site = await client.webApps.get(site.resourceGroup, site.name);
+      site.serverFarmId = '/subscriptions/dummy-sub/resourceGroups/dummy-rg/providers/Microsoft.Web/serverfarms/dummy';
+    }
     site.hostNameSslStates = site.hostNameSslStates ?? [];
 
     const resourceTree = new LogicAppResourceTree(sub.subscription, site);
@@ -289,7 +300,8 @@ async function getProjectPathToDeploy(
   workspaceFolder: WorkspaceFolder,
   settingsToExclude: string[],
   originalDeployFsPath: string,
-  identityWizardContext: IIdentityWizardContext
+  identityWizardContext: IIdentityWizardContext,
+  isContainerApp: boolean
 ): Promise<string | undefined> {
   const workspaceFolderPath = workspaceFolder.uri.fsPath;
   const connectionsJson = await getConnectionsJson(workspaceFolderPath);
@@ -340,7 +352,9 @@ async function getProjectPathToDeploy(
           type: 'ManagedServiceIdentity',
         };
       }
-      settingsToExclude.push(`${referenceKey}-connectionKey`);
+      if (!isContainerApp) {
+        settingsToExclude.push(`${referenceKey}-connectionKey`);
+      }
     }
 
     await writeFormattedJson(connectionsFilePath, parametizedConnections);

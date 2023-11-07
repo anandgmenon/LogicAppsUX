@@ -2,7 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { localSettingsFileName } from '../../constants';
+import { containersKind, localSettingsFileName } from '../../constants';
 import { localize } from '../../localize';
 import { parseHostJson } from '../funcConfig/host';
 import { getLocalSettingsJson } from '../utils/appSettings/localSettings';
@@ -232,21 +232,24 @@ export class LogicAppResourceTree implements ResolvedAppResourceBase {
   public async loadMoreChildrenImpl(_clearCache: boolean, context: IActionContext): Promise<AzExtTreeItem[]> {
     const client = await this.site.createClient(context);
     const siteConfig: SiteConfig = await client.getSiteConfig();
-    const sourceControl: SiteSourceControl = await client.getSourceControl();
     const proxyTree: SlotTreeItem = this as unknown as SlotTreeItem;
 
-    this.deploymentsNode = new DeploymentsTreeItem(proxyTree, {
-      site: this.site,
-      siteConfig: siteConfig,
-      sourceControl: sourceControl,
-    });
+    if (this.site.kind?.indexOf(containersKind) == -1) {
+      const sourceControl: SiteSourceControl = await client.getSourceControl();
+      this.deploymentsNode = new DeploymentsTreeItem(proxyTree, {
+        site: this.site,
+        siteConfig: siteConfig,
+        sourceControl: sourceControl,
+      });
 
-    this.deploymentsNode = new DeploymentsTreeItem(proxyTree, {
-      site: this.site,
-      siteConfig,
-      sourceControl,
-      contextValuesToAdd: ['azLogicApps'],
-    });
+      this.deploymentsNode = new DeploymentsTreeItem(proxyTree, {
+        site: this.site,
+        siteConfig,
+        sourceControl,
+        contextValuesToAdd: ['azLogicApps'],
+      });
+    }
+
     this.appSettingsTreeItem = new AppSettingsTreeItem(proxyTree, this.site, {
       contextValuesToAdd: ['azLogicApps'],
     });

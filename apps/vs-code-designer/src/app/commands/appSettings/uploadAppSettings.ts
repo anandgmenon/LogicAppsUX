@@ -36,7 +36,7 @@ export async function uploadAppSettings(
 
   if (!node) {
     node = await ext.rgApi.pickAppResource<AppSettingsTreeItem>(context, {
-      filter: logicAppFilter,
+      filter: [logicAppFilter],
       expectedChildContextValue: new RegExp(AppSettingsTreeItem.contextValue),
     });
   }
@@ -82,7 +82,9 @@ export async function uploadAppSettings(
           title: localize('uploadingSettingsTo', 'Uploading settings to "{0}"...', client.fullName),
         },
         async () => {
-          await client.updateApplicationSettings(remoteSettings);
+          await client
+            .updateApplicationSettings(remoteSettings)
+            .then(null, (reason) => (reason?.statusCode == 202 ? Promise.resolve() : Promise.reject(reason)));
         }
       );
 

@@ -131,7 +131,7 @@ const deleteFilesAndSubdirectories = async (directoryClient: ShareDirectoryClien
       if (fileOrDirectory.kind === DirectoryKind.directory) {
         const subDirectoryClient = directoryClient.getDirectoryClient(fileOrDirectory.name);
         await deleteFilesAndSubdirectories(subDirectoryClient);
-        subDirectoryClient.delete();
+        await subDirectoryClient.delete();
       } else if (fileOrDirectory.kind === DirectoryKind.file) {
         const fileClient = directoryClient.getFileClient(fileOrDirectory.name);
         await fileClient.delete();

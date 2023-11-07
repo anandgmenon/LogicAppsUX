@@ -124,6 +124,7 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
 
     if (context.useContainerApps) {
       newSiteConfig.linuxFxVersion = 'DOCKER|mcr.microsoft.com/azure-functions/dotnet:4-nightly';
+      newSiteConfig.minimumElasticInstanceCount = 1;
     }
 
     newSiteConfig.appSettings = await this.getAppSettings(context);
@@ -189,6 +190,13 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
       );
     }
 
+    if (context.useContainerApps) {
+      appSettings.push({
+        name: 'Workflows.CustomHostName',
+        value: `${context.newSiteName}.${context.containerApp['defaultDomain']}`,
+      });
+    }
+
     if (context.version === FuncVersion.v1) {
       appSettings.push({
         name: 'AzureWebJobsDashboard',
@@ -199,7 +207,8 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
     if (
       context.newSiteOS === WebsiteOS.windows &&
       runtimeWithoutVersion.toLowerCase() === WorkerRuntime.Node &&
-      context.version !== FuncVersion.v1
+      context.version !== FuncVersion.v1 &&
+      !context.useContainerApps
     ) {
       // Linux doesn't need this because it uses linuxFxVersion
       // v1 doesn't need this because it only supports one version of Node
