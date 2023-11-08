@@ -62,7 +62,7 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
   }
 
   private async getNewSite(context: ILogicAppWizardContext): Promise<modelSite> {
-    const locationName: string = (await LocationListStep.getLocation(context))?.name;
+    const locationName: string = (await LocationListStep.getLocation(context))?.displayName;
     const site: modelSite = {
       name: context.newSiteName,
       kind: getSiteKind(context),
