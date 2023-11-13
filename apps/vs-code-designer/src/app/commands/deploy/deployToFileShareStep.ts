@@ -7,6 +7,7 @@ import {
   connectionsFileName,
   DirectoryKind,
   hostFileName,
+  libDirectory,
   mapsDirectory,
   parametersFileName,
   schemasDirectory,
@@ -58,6 +59,7 @@ export const deployToFileShare = async (context: IActionContext, site: ParsedSit
       await uploadRootFiles(shareClient, projectPath);
       await uploadWorkflowsFiles(shareClient, projectPath);
       await uploadeArtifactsFiles(shareClient, projectPath);
+      await uploadLibFolderFiles(shareClient, projectPath);
     }
   });
 };
@@ -122,6 +124,35 @@ const uploadeArtifactsFiles = async (shareClient: ShareClient, projectPath: stri
     await createDirectories(shareClient, [directoryPath]);
     await uploadFiles(shareClient, artifactsFiles.schemas, directoryPath);
   }
+};
+
+const uploadLibFolderFiles = async (shareclient: ShareClient, projectPath: string) => {
+  const libFolderPath = path.join(projectPath, libDirectory);
+  const remoteFolderPath = path.join(wwwrootDirectory, libDirectory);
+
+  await uploadFilesRecursively(libFolderPath, remoteFolderPath, shareclient);
+};
+
+const uploadFilesRecursively = async (folderPath: string, remotePath: string, shareClient: ShareClient) => {
+  const files: string[] = await fse.readdir(folderPath);
+  const directoryClient = shareClient.getDirectoryClient(remotePath);
+  await directoryClient.createIfNotExists();
+  const filesToUpload: File[] = [];
+
+  for (const file of files) {
+    const fullPath = path.join(folderPath, file);
+    const fileStats = await fse.lstat(fullPath);
+    if (fileStats.isFile()) {
+      filesToUpload.push({ name: file, path: fullPath });
+    }
+
+    if (fileStats.isDirectory()) {
+      const subfolderPath = path.join(folderPath, file);
+      await uploadFilesRecursively(subfolderPath, path.join(remotePath, file), shareClient);
+    }
+  }
+
+  await uploadFiles(shareClient, filesToUpload, remotePath);
 };
 
 const deleteFilesAndSubdirectories = async (directoryClient: ShareDirectoryClient) => {

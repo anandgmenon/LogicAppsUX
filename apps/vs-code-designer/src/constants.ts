@@ -26,6 +26,7 @@ export const wwwrootDirectory = 'wwwroot';
 export const artifactsDirectory = 'Artifacts';
 export const mapsDirectory = 'Maps';
 export const schemasDirectory = 'Schemas';
+export const libDirectory = 'lib';
 
 // Extension Id
 export const logicAppsStandardExtensionId = 'ms-azuretools.vscode-azurelogicapps';
