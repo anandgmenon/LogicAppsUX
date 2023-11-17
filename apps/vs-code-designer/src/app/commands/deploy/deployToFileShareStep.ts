@@ -130,7 +130,9 @@ const uploadLibFolderFiles = async (shareclient: ShareClient, projectPath: strin
   const libFolderPath = path.join(projectPath, libDirectory);
   const remoteFolderPath = path.join(wwwrootDirectory, libDirectory);
 
-  await uploadFilesRecursively(libFolderPath, remoteFolderPath, shareclient);
+  if (await fse.pathExists(libFolderPath)) {
+    await uploadFilesRecursively(libFolderPath, remoteFolderPath, shareclient);
+  }
 };
 
 const uploadFilesRecursively = async (folderPath: string, remotePath: string, shareClient: ShareClient) => {
