@@ -123,7 +123,7 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
     }
 
     if (context.useContainerApps) {
-      newSiteConfig.linuxFxVersion = 'DOCKER|mcr.microsoft.com/azure-functions/dotnet:4-nightly';
+      newSiteConfig.linuxFxVersion = 'DOCKER|mcr.microsoft.com/azurelogicapps/logicapps-base:latest';
       newSiteConfig.minimumElasticInstanceCount = 1;
     }
 
