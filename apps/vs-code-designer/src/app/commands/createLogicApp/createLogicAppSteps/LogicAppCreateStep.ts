@@ -173,6 +173,7 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
       });
     }
 
+    const extensionBundleRange = context.useContainerApps ? '[1.49.0.6]' : defaultVersionRange;
     if (context.customLocation || context.useContainerApps) {
       appSettings.push(
         {
@@ -185,16 +186,22 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
         },
         {
           name: 'AzureFunctionsJobHost__extensionBundle__version',
-          value: defaultVersionRange,
+          value: extensionBundleRange,
         }
       );
     }
 
     if (context.useContainerApps) {
-      appSettings.push({
-        name: 'Workflows.CustomHostName',
-        value: `${context.newSiteName}.${context.containerApp['defaultDomain']}`,
-      });
+      appSettings.push(
+        {
+          name: 'Workflows.CustomHostName',
+          value: `${context.newSiteName}.${context.containerApp['defaultDomain']}`,
+        },
+        {
+          name: 'FUNCTIONS_EXTENSIONBUNDLE_SOURCE_URI',
+          value: 'https://cdnforlogicappsv2.blob.core.windows.net/logicapps-xslt',
+        }
+      );
     }
 
     if (context.version === FuncVersion.v1) {
