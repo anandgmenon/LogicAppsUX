@@ -44,6 +44,7 @@ export class DesignerConfig extends AzureWizardPromptStep<IProjectWizardContext>
         workflow: {
           settings: {
             'Runtime.WorkflowOperationDiscoveryHostMode': 'true',
+            'Xslt.UseLegacyXsltWorker': 'true',
           },
         },
       },
