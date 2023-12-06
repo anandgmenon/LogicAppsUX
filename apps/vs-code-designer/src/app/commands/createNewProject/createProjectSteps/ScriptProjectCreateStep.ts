@@ -95,6 +95,13 @@ __azurite_db*__.json`)
           },
         },
       },
+      extensions: {
+        workflow: {
+          Settings: {
+            'Xslt.UseLegacyXsltWorker': 'true',
+          },
+        },
+      },
     };
 
     await addDefaultBundle(context, hostJson);

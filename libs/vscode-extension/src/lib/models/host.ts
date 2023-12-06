@@ -17,6 +17,7 @@ export interface IHostJsonV2 {
     http?: {
       routePrefix?: string;
     };
+    workflow?: any;
   };
   concurrency?: {
     dynamicConcurrencyEnabled: boolean;

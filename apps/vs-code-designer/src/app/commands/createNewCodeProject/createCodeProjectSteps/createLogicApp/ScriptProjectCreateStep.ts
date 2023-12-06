@@ -108,6 +108,13 @@ __azurite_db*__.json`)
           },
         },
       },
+      extensions: {
+        workflow: {
+          Settings: {
+            'Xslt.UseLegacyXsltWorker': 'true',
+          },
+        },
+      },
     };
 
     // Add the default bundle to the host.json file
