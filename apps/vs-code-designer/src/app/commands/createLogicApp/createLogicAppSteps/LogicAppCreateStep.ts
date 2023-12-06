@@ -173,7 +173,7 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
       });
     }
 
-    const extensionBundleRange = context.useContainerApps ? '[1.49.0.6]' : defaultVersionRange;
+    const extensionBundleRange = context.useContainerApps ? '[1.50.0.4]' : defaultVersionRange;
     if (context.customLocation || context.useContainerApps) {
       appSettings.push(
         {
@@ -199,7 +199,7 @@ export class LogicAppCreateStep extends AzureWizardExecuteStep<ILogicAppWizardCo
         },
         {
           name: 'FUNCTIONS_EXTENSIONBUNDLE_SOURCE_URI',
-          value: 'https://cdnforlogicappsv2.blob.core.windows.net/logicapps-xslt',
+          value: 'https://cdnforlogicappsv2.blob.core.windows.net/logicapps-custom-code',
         }
       );
     }
