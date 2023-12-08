@@ -19,6 +19,7 @@ import {
 import { ext } from '../../../extensionVariables';
 import { localize } from '../../../localize';
 import { getArtifactsPathInLocalProject, getWorkflowsPathInLocalProject, type File } from '../../utils/codeless/common';
+import { getRandomHexString } from '../../utils/fs';
 import { tryGetFunctionProjectRoot } from '../../utils/verifyIsProject';
 import { getWorkspaceFolderPath } from '../workflows/switchDebugMode/switchDebugMode';
 import type { StringDictionary } from '@azure/arm-appservice';
@@ -50,16 +51,15 @@ export const deployToFileShare = async (context: IActionContext, site: ParsedSit
 
       const directoryClient = shareClient.getDirectoryClient(wwwrootDirectory);
       if (await directoryClient.exists()) {
+        const tempUploadDirectory = `wwwroot-temp--${getRandomHexString(4)}`;
+        await uploadProjectFiles(shareClient, projectPath, tempUploadDirectory);
+        const newRootDirectoryClient = await shareClient.getDirectoryClient(tempUploadDirectory);
         await deleteFilesAndSubdirectories(directoryClient);
         await directoryClient.delete();
+        await newRootDirectoryClient.rename(wwwrootDirectory);
+      } else {
+        await uploadProjectFiles(shareClient, projectPath, wwwrootDirectory);
       }
-
-      await shareClient.createDirectory(wwwrootDirectory);
-
-      await uploadRootFiles(shareClient, projectPath);
-      await uploadWorkflowsFiles(shareClient, projectPath);
-      await uploadeArtifactsFiles(shareClient, projectPath);
-      await uploadLibFolderFiles(shareClient, projectPath);
     }
   });
 };
@@ -83,7 +83,7 @@ const uploadFiles = async (shareClient: ShareClient, files: File[], directoryPat
   }
 };
 
-const uploadRootFiles = async (shareClient: ShareClient, projectPath: string | undefined) => {
+const uploadRootFiles = async (shareClient: ShareClient, projectPath: string | undefined, rootDirectory: string) => {
   const hostJsonPath: string = path.join(projectPath, hostFileName);
   const parametersJsonPath: string = path.join(projectPath, parametersFileName);
   const connectionsJsonPath: string = path.join(projectPath, connectionsFileName);
@@ -94,41 +94,41 @@ const uploadRootFiles = async (shareClient: ShareClient, projectPath: string | u
   ];
   for (const rootFile of rootFiles) {
     if (await fse.pathExists(rootFile.path)) {
-      await uploadFiles(shareClient, [{ path: rootFile.path, name: rootFile.name }], wwwrootDirectory);
+      await uploadFiles(shareClient, [{ path: rootFile.path, name: rootFile.name }], rootDirectory);
     }
   }
 };
 
-const uploadWorkflowsFiles = async (shareClient: ShareClient, projectPath: string | undefined) => {
+const uploadWorkflowsFiles = async (shareClient: ShareClient, projectPath: string | undefined, rootDirectory: string) => {
   const workflowFiles = await getWorkflowsPathInLocalProject(projectPath);
   for (const workflowFile of workflowFiles) {
-    const directoryPath = path.join(wwwrootDirectory, workflowFile.name);
+    const directoryPath = path.join(rootDirectory, workflowFile.name);
     await createDirectories(shareClient, [directoryPath]);
     await uploadFiles(shareClient, [{ ...workflowFile, name: workflowFileName }], directoryPath);
   }
 };
 
-const uploadeArtifactsFiles = async (shareClient: ShareClient, projectPath: string | undefined) => {
+const uploadeArtifactsFiles = async (shareClient: ShareClient, projectPath: string | undefined, rootDirectory: string) => {
   const artifactsFiles = await getArtifactsPathInLocalProject(projectPath);
-  const artifactsPathShare = path.join(wwwrootDirectory, artifactsDirectory);
+  const artifactsPathShare = path.join(rootDirectory, artifactsDirectory);
   await createDirectories(shareClient, [artifactsPathShare]);
 
   if (artifactsFiles.maps.length > 0) {
-    const directoryPath = path.join(wwwrootDirectory, artifactsDirectory, mapsDirectory);
+    const directoryPath = path.join(rootDirectory, artifactsDirectory, mapsDirectory);
     await createDirectories(shareClient, [directoryPath]);
     await uploadFiles(shareClient, artifactsFiles.maps, directoryPath);
   }
 
   if (artifactsFiles.schemas.length > 0) {
-    const directoryPath = path.join(wwwrootDirectory, artifactsDirectory, schemasDirectory);
+    const directoryPath = path.join(rootDirectory, artifactsDirectory, schemasDirectory);
     await createDirectories(shareClient, [directoryPath]);
     await uploadFiles(shareClient, artifactsFiles.schemas, directoryPath);
   }
 };
 
-const uploadLibFolderFiles = async (shareclient: ShareClient, projectPath: string) => {
+const uploadLibFolderFiles = async (shareclient: ShareClient, projectPath: string, rootDirectory: string) => {
   const libFolderPath = path.join(projectPath, libDirectory);
-  const remoteFolderPath = path.join(wwwrootDirectory, libDirectory);
+  const remoteFolderPath = path.join(rootDirectory, libDirectory);
 
   if (await fse.pathExists(libFolderPath)) {
     await uploadFilesRecursively(libFolderPath, remoteFolderPath, shareclient);
@@ -163,14 +163,25 @@ const deleteFilesAndSubdirectories = async (directoryClient: ShareDirectoryClien
     for await (const fileOrDirectory of filesAndDirectories) {
       if (fileOrDirectory.kind === DirectoryKind.directory) {
         const subDirectoryClient = directoryClient.getDirectoryClient(fileOrDirectory.name);
+        await subDirectoryClient.forceCloseAllHandles();
         await deleteFilesAndSubdirectories(subDirectoryClient);
         await subDirectoryClient.delete();
       } else if (fileOrDirectory.kind === DirectoryKind.file) {
         const fileClient = directoryClient.getFileClient(fileOrDirectory.name);
+        await fileClient.forceCloseAllHandles();
         await fileClient.delete();
       }
     }
   } catch (error) {
     console.error(`Error deleting files and subdirectories from file share: ${error.message}`);
   }
+};
+
+const uploadProjectFiles = async (shareClient: ShareClient, localProjectPath: string, remoteFolderName: string) => {
+  await shareClient.createDirectory(remoteFolderName);
+
+  await uploadRootFiles(shareClient, localProjectPath, remoteFolderName);
+  await uploadWorkflowsFiles(shareClient, localProjectPath, remoteFolderName);
+  await uploadeArtifactsFiles(shareClient, localProjectPath, remoteFolderName);
+  await uploadLibFolderFiles(shareClient, localProjectPath, remoteFolderName);
 };
